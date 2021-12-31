@@ -37,6 +37,8 @@ bool waitForAnswer = false;
 unsigned long starttime = 0;
 int status = 0;
 int rssi = 0;
+int greenLED = 33;
+int redLED = 32;
 
 String mqtt_sub = "";
 String mqtt_pub = "";
@@ -46,6 +48,33 @@ String mqtt_pub4 = "";
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+
+// ---[LED Stuff]------------------------------------------------------------
+void initLED(){
+  pinMode(greenLED, OUTPUT);
+  pinMode(redLED, OUTPUT);
+}
+void allLEDOff(){
+  digitalWrite(redLED, LOW);
+  digitalWrite(greenLED, LOW);
+}
+void redLEDOn(int duration){
+  digitalWrite(greenLED, LOW);
+  digitalWrite(redLED, HIGH);
+  if(duration > 0){
+    delay(duration);
+    allLEDOff();
+  }
+}
+void greenLEDOn(int duration){
+  digitalWrite(redLED, LOW);
+  digitalWrite(greenLED, HIGH);
+  if(duration > 0){
+    delay(duration);
+    allLEDOff();
+  }
+}
+
 // ---[MqttCallback]------------------------------------------------------------
 void MqttCallback(char *topic, byte *payload, unsigned int length)
 {
@@ -102,6 +131,7 @@ void assembleTopicAndSend(string topicPart1, string topicPart2, char *message)
   Serial.print(topic.c_str());
   Serial.print("/");
   Serial.println(message);
+  greenLEDOn(300);
 }
 void MqttPublish()
 {
@@ -230,6 +260,8 @@ void SetupWifi()
 // ---[Setup]-------------------------------------------------------------------
 void setup()
 {
+  initLED();
+  redLEDOn(0);
   delay(1000);
   Serial.begin(115200);
   Serial.println("---Starting up...---");
@@ -237,6 +269,9 @@ void setup()
   SetupWifi();
   //MQTT
   SetupMqtt();
+
+  greenLEDOn(500);
+
   //Bluetooth
   BLEDevice::init("");
   keyble = new eQ3(KeyBleMac, KeyBleUserKey, KeyBleUserId);
@@ -253,24 +288,24 @@ void loop()
     {
       Serial.println("# WiFi disconnected, reconnect...");
       SetupWifi();
+      redLEDOn(0);
     }
     else
     {
       // MQTT connected?
-      if (!mqttClient.connected())
-      {
+      if (!mqttClient.connected()) {
+        redLEDOn(0);
         if (WiFi.status() == WL_CONNECTED)
         {
           Serial.println("# MQTT disconnected, reconnect...");
           SetupMqtt();
+          greenLEDOn(500);
           if (statusUpdated)
           {
             MqttPublish();
           }
         }
-      }
-      else if (mqttClient.connected())
-      {
+      } else if (mqttClient.connected()) {
         mqttClient.loop();
       }
     }
