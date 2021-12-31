@@ -84,6 +84,7 @@ modules.xml
 *.ipr
 
 ### PlatformIO ###
+.pio/build
 .pioenvs
 .piolibdeps
 .clang_complete
