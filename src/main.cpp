@@ -123,14 +123,14 @@ void MqttCallback(char *topic, byte *payload, unsigned int length)
   }
 }
 // ---[MQTTpublish]-------------------------------------------------------------
-void assembleTopicAndSend(string topicPart1, string topicPart2, char *message)
+void assembleTopicAndSend(string topicPart1, string topicPart2, string message)
 {
   string topic = topicPart1 + topicPart2;
-  mqttClient.publish(topic.c_str(), message);
+  mqttClient.publish(topic.c_str(), message.c_str());
   Serial.print("# published ");
   Serial.print(topic.c_str());
   Serial.print("/");
-  Serial.println(message);
+  Serial.println(message.c_str());
   greenLEDOn(300);
 }
 void MqttPublish()
