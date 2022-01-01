@@ -319,6 +319,7 @@ void loop()
     mqtt_pub2 = charBuffer4;
     delay(200);
     SetWifi(false);
+    redLEDOn(0);
     yield();
     waitForAnswer = true;
     keyble->_LockStatus = -1;
@@ -439,6 +440,7 @@ void loop()
 
         SetWifi(true);
 
+        greenLEDOn(100);
         statusUpdated = true;
         waitForAnswer = false;
       }
