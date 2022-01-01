@@ -163,7 +163,7 @@ void MqttPublish()
   String str_task = "waiting";
   char charBuffer2[8];
   str_task.toCharArray(charBuffer2, 8);
-  assembleTopicAndSend(MqttTopic, MQTT_PUB, charBuffer2);
+  assembleTopicAndSend(MqttTopic, MQTT_PUB2, charBuffer2);
   mqtt_pub2 = charBuffer2;
 
   //MQTT_PUB3 battery
