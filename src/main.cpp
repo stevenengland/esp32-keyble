@@ -7,9 +7,17 @@
 #include "WiFi.h"
 #include "PubSubClient.h"
 #include <esp_wifi.h>
-#include <WiFiClient.h>
 #include <BLEDevice.h>
 #include "secrets.h"
+
+#define SECURE_MQTT_CON // Comment this out to use the unsecure one
+#ifdef SECURE_MQTT_CON
+#include <WiFiClientSecure.h>
+#else
+#include <WiFiClient.h>
+#endif
+
+#define CARD_KEY "M001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 // mqtt
 string MQTT_SUB = "/command";
@@ -17,8 +25,6 @@ string MQTT_PUB = "/state";
 string MQTT_PUB2 = "/task";
 string MQTT_PUB3 = "/battery";
 string MQTT_PUB4 = "/rssi";
-
-#define CARD_KEY "M001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 // ---[Variables]---------------------------------------------------------------
 eQ3 *keyble;
@@ -46,30 +52,41 @@ String mqtt_pub2 = "";
 String mqtt_pub3 = "";
 String mqtt_pub4 = "";
 
+#ifdef SECURE_MQTT_CON
+WiFiClientSecure wifiClient;
+#else
 WiFiClient wifiClient;
+#endif
+
 PubSubClient mqttClient(wifiClient);
 
 // ---[LED Stuff]------------------------------------------------------------
-void initLED(){
+void initLED()
+{
   pinMode(greenLED, OUTPUT);
   pinMode(redLED, OUTPUT);
 }
-void allLEDOff(){
+void allLEDOff()
+{
   digitalWrite(redLED, LOW);
   digitalWrite(greenLED, LOW);
 }
-void redLEDOn(int duration){
+void redLEDOn(int duration)
+{
   digitalWrite(greenLED, LOW);
   digitalWrite(redLED, HIGH);
-  if(duration > 0){
+  if (duration > 0)
+  {
     delay(duration);
     allLEDOff();
   }
 }
-void greenLEDOn(int duration){
+void greenLEDOn(int duration)
+{
   digitalWrite(redLED, LOW);
   digitalWrite(greenLED, HIGH);
-  if(duration > 0){
+  if (duration > 0)
+  {
     delay(duration);
     allLEDOff();
   }
@@ -79,42 +96,42 @@ void greenLEDOn(int duration){
 void MqttCallback(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("# Message received: ");
-  //pair
+  // pair
   if (payload[0] == '6')
   {
     do_pair = true;
     mqtt_sub = "*** pair ***";
     Serial.println(mqtt_sub);
   }
-  //toggle
+  // toggle
   if (payload[0] == '5')
   {
     do_toggle = true;
     mqtt_sub = "*** toggle ***";
     Serial.println(mqtt_sub);
   }
-  //open
+  // open
   if (payload[0] == '4')
   {
     do_open = true;
     mqtt_sub = "*** open ***";
     Serial.println(mqtt_sub);
   }
-  //lock
+  // lock
   if (payload[0] == '3')
   {
     do_lock = true;
     mqtt_sub = "*** lock ***";
     Serial.println(mqtt_sub);
   }
-  //unlock
+  // unlock
   if (payload[0] == '2')
   {
     do_unlock = true;
     mqtt_sub = "*** unlock ***";
     Serial.println(mqtt_sub);
   }
-  //status
+  // status
   if (payload[0] == '1')
   {
     do_status = true;
@@ -136,7 +153,7 @@ void assembleTopicAndSend(string topicPart1, string topicPart2, string message)
 void MqttPublish()
 {
   statusUpdated = false;
-  //MQTT_PUB status
+  // MQTT_PUB status
   status = keyble->_LockStatus;
   String str_status = "";
   char charBuffer1[9];
@@ -159,14 +176,14 @@ void MqttPublish()
 
   delay(100);
 
-  //MQTT_PUB2 task
+  // MQTT_PUB2 task
   String str_task = "waiting";
   char charBuffer2[8];
   str_task.toCharArray(charBuffer2, 8);
   assembleTopicAndSend(MqttTopic, MQTT_PUB2, charBuffer2);
   mqtt_pub2 = charBuffer2;
 
-  //MQTT_PUB3 battery
+  // MQTT_PUB3 battery
   if (keyble->raw_data[1] == 0x81)
   {
     assembleTopicAndSend(MqttTopic, MQTT_PUB3, "false");
@@ -178,7 +195,7 @@ void MqttPublish()
     mqtt_pub3 = true;
   }
 
-  //MQTT_PUB3 rssi
+  // MQTT_PUB3 rssi
   rssi = keyble->_RSSI;
   char charBuffer3[4];
   String strRSSI = String(rssi);
@@ -193,7 +210,7 @@ void SetupMqtt()
 {
   while (!mqttClient.connected())
   { // Loop until we're reconnected to the MQTT server
-    mqttClient.setServer(MqttServerName.c_str(), MqttPort);
+    mqttClient.setServer(MqttServerName, MqttPort);
     mqttClient.setCallback(&MqttCallback);
     Serial.println("# Connect to MQTT-Broker... ");
     if (mqttClient.connect(MqttTopic.c_str(), MqttUserName.c_str(), MqttUserPass.c_str()))
@@ -260,6 +277,10 @@ void SetupWifi()
 // ---[Setup]-------------------------------------------------------------------
 void setup()
 {
+#ifdef SECURE_MQTT_CON
+  wifiClient.setInsecure();
+#endif
+
   initLED();
   redLEDOn(0);
   delay(1000);
@@ -267,15 +288,15 @@ void setup()
   Serial.println("---Starting up...---");
   Serial.setDebugOutput(true);
   SetupWifi();
-  //MQTT
+  // MQTT
   SetupMqtt();
 
   greenLEDOn(500);
 
-  //Bluetooth
+  // Bluetooth
   BLEDevice::init("");
   keyble = new eQ3(KeyBleMac, KeyBleUserKey, KeyBleUserId);
-  //get lockstatus on boot
+  // get lockstatus on boot
   do_status = true;
 }
 // ---[loop]--------------------------------------------------------------------
@@ -293,7 +314,8 @@ void loop()
     else
     {
       // MQTT connected?
-      if (!mqttClient.connected()) {
+      if (!mqttClient.connected())
+      {
         redLEDOn(0);
         if (WiFi.status() == WL_CONNECTED)
         {
@@ -305,7 +327,9 @@ void loop()
             MqttPublish();
           }
         }
-      } else if (mqttClient.connected()) {
+      }
+      else if (mqttClient.connected())
+      {
         mqttClient.loop();
       }
     }
@@ -372,7 +396,7 @@ void loop()
     if (do_pair)
     {
       Serial.println("*** pair ***");
-      //Parse key card data
+      // Parse key card data
       std::string cardKey = CARD_KEY;
       if (cardKey.length() == 56)
       {
@@ -403,7 +427,7 @@ void loop()
     {
       if (keyble->_LockStatus == 1)
       {
-        //Serial.println("Lockstatus 1");
+        // Serial.println("Lockstatus 1");
         if (timeout)
         {
           finished = true;
@@ -412,10 +436,10 @@ void loop()
       }
       else if (keyble->_LockStatus == -1)
       {
-        //Serial.println("Lockstatus -1");
+        // Serial.println("Lockstatus -1");
         if (timeout)
         {
-          keyble->_LockStatus = 9; //timeout
+          keyble->_LockStatus = 9; // timeout
           finished = true;
           Serial.println("!!! Lockstatus -1 - timeout !!!");
         }
@@ -423,7 +447,7 @@ void loop()
       else if (keyble->_LockStatus != 1)
       {
         finished = true;
-        //Serial.println("Lockstatus != 1");
+        // Serial.println("Lockstatus != 1");
       }
 
       if (finished)
