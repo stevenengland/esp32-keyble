@@ -294,7 +294,7 @@ void setup()
   greenLEDOn(500);
 
   // Bluetooth
-  BLEDevice::init("");
+  // BLEDevice::init("");
   keyble = new eQ3(KeyBleMac, KeyBleUserKey, KeyBleUserId);
   // get lockstatus on boot
   do_status = true;
@@ -336,6 +336,8 @@ void loop()
   }
   if (do_open || do_lock || do_unlock || do_status || do_toggle || do_pair)
   {
+    Serial.println("init BLE device");
+    BLEDevice::init("");
     String str_task = "working";
     char charBuffer4[8];
     str_task.toCharArray(charBuffer4, 8);
@@ -461,6 +463,10 @@ void loop()
 
         delay(100);
         yield();
+
+        Serial.println("de-init BLE device");
+        BLEDevice::deinit(false);
+        delay(2000);
 
         SetWifi(true);
 
