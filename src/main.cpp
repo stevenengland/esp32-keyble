@@ -9,6 +9,7 @@
 #include <esp_wifi.h>
 #include <BLEDevice.h>
 #include "secrets.h"
+#include <esp_task_wdt.h>
 
 #define SECURE_MQTT_CON // Comment this out to use the unsecure one
 #ifdef SECURE_MQTT_CON
@@ -18,6 +19,7 @@
 #endif
 
 #define CARD_KEY "M001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+#define WDT_TIMEOUT 20 // WDT Timeout in seconds
 
 // mqtt
 string MQTT_SUB = "/command";
@@ -298,6 +300,10 @@ void setup()
   keyble = new eQ3(KeyBleMac, KeyBleUserKey, KeyBleUserId);
   // get lockstatus on boot
   do_status = true;
+
+  // watchdog
+  esp_task_wdt_init(WDT_TIMEOUT, true); // Initialize ESP32 Task WDT
+  esp_task_wdt_add(NULL);               // Subscribe to the Task WDT
 }
 // ---[loop]--------------------------------------------------------------------
 void loop()
@@ -476,4 +482,6 @@ void loop()
       }
     }
   }
+
+  esp_task_wdt_reset();
 }
