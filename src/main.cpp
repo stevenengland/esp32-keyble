@@ -18,7 +18,6 @@
 #include <WiFiClient.h>
 #endif
 
-#define CARD_KEY "M001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 #define WDT_TIMEOUT 20 // WDT Timeout in seconds
 
 // mqtt
@@ -405,7 +404,7 @@ void loop()
     {
       Serial.println("*** pair ***");
       // Parse key card data
-      std::string cardKey = CARD_KEY;
+      std::string cardKey = KeyBleKeyCode;
       if (cardKey.length() == 56)
       {
         std::string pairMac = cardKey.substr(1, 12);
