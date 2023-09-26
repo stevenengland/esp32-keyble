@@ -294,8 +294,20 @@ void setup()
 
   greenLEDOn(500);
 
-  // Bluetooth
-  // BLEDevice::init("");
+  // Bluetooth - Set and output power parameter
+  BLEDevice::init("");
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, BlePowerValue);
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, BlePowerValue);
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, BlePowerValue);
+  int pwrAdv = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_ADV);
+  int pwrScan = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_SCAN);
+  int pwrDef = esp_ble_tx_power_get(ESP_BLE_PWR_TYPE_DEFAULT);
+  Serial.println("Power Settings: (ADV,SCAN,DEFAULT)"); // all should show index7, aka +9dbm
+  Serial.println(pwrAdv);
+  Serial.println(pwrScan);
+  Serial.println(pwrDef);
+  BLEDevice::deinit(false);
+
   keyble = new eQ3(KeyBleMac, KeyBleUserKey, KeyBleUserId);
   // get lockstatus on boot
   do_status = true;
@@ -341,6 +353,10 @@ void loop()
   }
   if (do_open || do_lock || do_unlock || do_status || do_toggle || do_pair)
   {
+    // Avoid that a reboot at any time will repeat the last command if the message in the sub topic is not deleted
+    Serial.println("Reset /command before executing command.");
+    assembleTopicAndSend(MqttTopic, MQTT_SUB, "0");
+
     Serial.println("init BLE device");
     BLEDevice::init("");
     String str_task = "working";
